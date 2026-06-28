@@ -5,6 +5,11 @@ on:
     # 한국 시간 06:30 = UTC 전날 21:30
     - cron: '30 21 * * *'
   workflow_dispatch:  # 수동 실행 허용
+    inputs:
+      force:
+        description: '중복 방지 무시하고 강제 발송'
+        type: boolean
+        default: true
 
 jobs:
   send-briefing:
@@ -37,4 +42,9 @@ jobs:
           echo "GOOGLE_APPLICATION_CREDENTIALS=input/service-account.json" >> input/.env
 
       - name: 아침 브리핑 실행
-        run: python main.py
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.force }}" = "true" ]; then
+            python main.py --force
+          else
+            python main.py
+          fi

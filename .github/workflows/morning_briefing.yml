@@ -2,8 +2,8 @@ name: 아침 브리핑 자동 발송
 
 on:
   schedule:
-    # 한국 시간 06:30 = UTC 전날 21:30
-    - cron: '30 21 * * *'
+    # 한국 시간 05:30 설정 = UTC 전날 20:30 (GitHub Actions 지연 30~60분 감안 → 실제 발송 06:00~06:30)
+    - cron: '30 20 * * *'
   workflow_dispatch:  # 수동 실행 허용
     inputs:
       force:

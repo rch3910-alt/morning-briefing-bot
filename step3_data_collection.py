@@ -82,7 +82,7 @@ def get_weather():
         # 날씨
         w_url = (
             "https://api.open-meteo.com/v1/forecast"
-            "?latitude=37.5665&longitude=126.9780"
+            "?latitude=37.5641&longitude=126.9979"
             "&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,"
             "precipitation_hours&current=temperature_2m,weathercode"
             "&timezone=Asia%2FSeoul&forecast_days=1"
@@ -97,7 +97,7 @@ def get_weather():
         # 미세먼지 (Open-Meteo Air Quality)
         aq_url = (
             "https://air-quality-api.open-meteo.com/v1/air-quality"
-            "?latitude=37.5665&longitude=126.9780"
+            "?latitude=37.5641&longitude=126.9979"
             "&current=pm10,pm2_5"
             "&timezone=Asia%2FSeoul"
         )

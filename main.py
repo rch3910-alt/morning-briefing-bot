@@ -166,7 +166,7 @@ print(f"Fear&Greed: {'OK' if fear_greed else 'FAIL'}")
 # ── 4. 번역 헬퍼 (MyMemory — 무료, API키 불필요) ─────────────
 def translate_ko(text: str) -> str:
     try:
-        return MyMemoryTranslator(source="en-US", target="ko-KR").translate(text[:500])
+        return MyMemoryTranslator(source="auto", target="ko-KR").translate(text[:500])
     except Exception:
         return text
 
@@ -243,7 +243,7 @@ def get_weather():
         # 일별·시간별·현재 통합 요청
         wr = requests.get(
             "https://api.open-meteo.com/v1/forecast"
-            "?latitude=37.5665&longitude=126.9780"
+            "?latitude=37.5641&longitude=126.9979"
             "&daily=temperature_2m_max,temperature_2m_min,"
             "precipitation_probability_max,precipitation_hours,"
             "precipitation_sum,windspeed_10m_max,weathercode"
@@ -298,7 +298,7 @@ def get_weather():
         # 미세먼지
         aqr = requests.get(
             "https://air-quality-api.open-meteo.com/v1/air-quality"
-            "?latitude=37.5665&longitude=126.9780&current=pm10,pm2_5&timezone=Asia%2FSeoul",
+            "?latitude=37.5641&longitude=126.9979&current=pm10,pm2_5&timezone=Asia%2FSeoul",
             timeout=10,
         ).json()
 

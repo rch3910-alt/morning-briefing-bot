@@ -6,6 +6,7 @@
 """
 import os
 import sys
+import html
 import requests
 import feedparser
 import yfinance as yf
@@ -344,10 +345,10 @@ def fmt_market(m):
     return f"{m['name']:6s} {price}{unit}  {arrow} {chg} ({m['change_pct']:+.2f}%)"
 
 def build_message():
-    lines = [f"📅 아침 브리핑 — {TODAY_DISPLAY} ({WEEKDAY}요일)\n"]
+    lines = [f"<b>📅 아침 브리핑 — {TODAY_DISPLAY} ({WEEKDAY}요일)</b>\n"]
 
     # 증시
-    lines.append("📈 미국 증시 마감 (현지 기준)")
+    lines.append("<b>📈 미국 증시 마감 (현지 기준)</b>")
     if markets:
         for m in markets:
             lines.append(f"  {fmt_market(m)}")
@@ -358,33 +359,33 @@ def build_message():
     if fear_greed:
         fg = fear_greed
         src = f"  ({fg['source']})" if fg.get("source") != "CNN" else ""
-        lines.append(f"\n😰 Fear & Greed Index{src}")
+        lines.append(f"\n<b>😰 Fear &amp; Greed Index{src}</b>")
         lines.append(f"  {fg['emoji']} {fg['score']} / 100  —  {fg['rating_ko']} ({fg['rating']})")
 
     # 증시 뉴스
-    lines.append("\n📰 미국 증시 뉴스 TOP5")
+    lines.append("\n<b>📰 미국 증시 뉴스 TOP5</b>")
     if stock_news:
         for i, n in enumerate(stock_news, 1):
-            lines.append(f"  {i}. {n['title_ko']}")
+            lines.append(f"  {i}. {html.escape(n['title_ko'])}")
             lines.append(f"     [{n['source']}]")
     else:
         lines.append("  뉴스 없음")
 
     # 반도체 뉴스
-    lines.append("\n💾 반도체 뉴스 TOP5")
+    lines.append("\n<b>💾 반도체 뉴스 TOP5</b>")
     if semi_news:
         for i, n in enumerate(semi_news, 1):
-            lines.append(f"  {i}. {n['title_ko']}")
+            lines.append(f"  {i}. {html.escape(n['title_ko'])}")
             lines.append(f"     [{n['source']}]")
     else:
         lines.append("  뉴스 없음")
 
     # 캘린더
     if events:
-        lines.append("\n📆 오늘 일정")
+        lines.append("\n<b>📆 오늘 일정</b>")
         for e in events[:5]:
             start = e["start"].get("dateTime", e["start"].get("date", ""))
-            lines.append(f"  - {e.get('summary', '(제목 없음)')} [{start}]")
+            lines.append(f"  - {html.escape(e.get('summary', '(제목 없음)'))} [{start}]")
 
     # 날씨
     if weather:
@@ -395,7 +396,7 @@ def build_message():
             if w["precip_sum"] > 0 else f"{w['precip_prob']}%"
         )
         lines.append(
-            f"\n🌤 날씨 (서울)\n"
+            f"\n<b>🌤 날씨 (서울)</b>\n"
             f"  기온: {w['cur_temp']}°C  (최고 {w['max_temp']}° / 최저 {w['min_temp']}°)\n"
             f"  강수 확률: {precip_text}\n"
             f"  강수 시간대: {rain_time}\n"
@@ -469,7 +470,7 @@ print("마크다운 저장 완료")
 msg  = build_message()
 resp = requests.post(
     f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
-    json={"chat_id": CHAT_ID, "text": msg},
+    json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "HTML"},
     timeout=10,
 )
 if resp.status_code == 200:

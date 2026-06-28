@@ -113,36 +113,52 @@ for name, sym, unit in MARKET_TICKERS:
 
 # ── 3. Fear & Greed Index (CNN) ───────────────────────────────
 def get_fear_greed():
+    rating_ko_map = {
+        "Extreme Fear": "극단적 공포",
+        "Fear": "공포",
+        "Neutral": "중립",
+        "Greed": "탐욕",
+        "Extreme Greed": "극단적 탐욕",
+    }
+    def score_to_emoji(s):
+        if s <= 24:   return "😱"
+        elif s <= 44: return "😨"
+        elif s <= 55: return "😐"
+        elif s <= 75: return "😊"
+        else:         return "🤑"
+
+    # 1차 시도: CNN API
     try:
-        resp = requests.get(
+        r = requests.get(
             "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
-            headers={"User-Agent": "Mozilla/5.0"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+                "Referer": "https://edition.cnn.com/markets/fear-and-greed",
+                "Accept": "application/json",
+            },
             timeout=10,
-        ).json()
-        fg = resp["fear_and_greed"]
+        )
+        print(f"  Fear&Greed CNN 응답: {r.status_code}")
+        data = r.json()
+        fg = data["fear_and_greed"]
         score = round(fg["score"])
         rating = fg["rating"]
-        rating_ko = {
-            "Extreme Fear": "극단적 공포",
-            "Fear": "공포",
-            "Neutral": "중립",
-            "Greed": "탐욕",
-            "Extreme Greed": "극단적 탐욕",
-        }.get(rating, rating)
-        if score <= 24:
-            emoji = "😱"
-        elif score <= 44:
-            emoji = "😨"
-        elif score <= 55:
-            emoji = "😐"
-        elif score <= 75:
-            emoji = "😊"
-        else:
-            emoji = "🤑"
-        return {"score": score, "rating": rating, "rating_ko": rating_ko, "emoji": emoji}
+        return {"score": score, "rating": rating, "rating_ko": rating_ko_map.get(rating, rating), "emoji": score_to_emoji(score), "source": "CNN"}
     except Exception as e:
-        print(f"[경고] Fear & Greed 조회 실패: {e}")
-        return None
+        print(f"[경고] CNN Fear&Greed 실패: {e}")
+
+    # 2차 시도: alternative.me (암호화폐 F&G — 주식 시장 심리 보조 지표)
+    try:
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        print(f"  Fear&Greed alternative.me 응답: {r.status_code}")
+        data = r.json()
+        score = int(data["data"][0]["value"])
+        rating = data["data"][0]["value_classification"]
+        return {"score": score, "rating": rating, "rating_ko": rating_ko_map.get(rating, rating), "emoji": score_to_emoji(score), "source": "Crypto F&G"}
+    except Exception as e:
+        print(f"[경고] alternative.me Fear&Greed 실패: {e}")
+
+    return None
 
 fear_greed = get_fear_greed()
 print(f"Fear&Greed: {'OK' if fear_greed else 'FAIL'}")
@@ -341,7 +357,8 @@ def build_message():
     # Fear & Greed Index
     if fear_greed:
         fg = fear_greed
-        lines.append(f"\n😰 Fear & Greed Index")
+        src = f"  ({fg['source']})" if fg.get("source") != "CNN" else ""
+        lines.append(f"\n😰 Fear & Greed Index{src}")
         lines.append(f"  {fg['emoji']} {fg['score']} / 100  —  {fg['rating_ko']} ({fg['rating']})")
 
     # 증시 뉴스

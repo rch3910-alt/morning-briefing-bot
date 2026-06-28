@@ -24,12 +24,12 @@ jobs:
 
       - name: 구글 서비스 계정 키 파일 생성
         run: |
-          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > input/service-account.json
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' > input/service-account.json
 
       - name: .env 파일 생성
         run: |
-          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > input/.env
-          echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> input/.env
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_TOKEN }}" > input/.env
+          echo "TELEGRAM_CHAT_ID=${{ secrets.CHAT_ID }}" >> input/.env
           echo "GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}" >> input/.env
           echo "GOOGLE_APPLICATION_CREDENTIALS=input/service-account.json" >> input/.env
 

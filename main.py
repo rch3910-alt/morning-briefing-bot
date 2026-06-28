@@ -111,14 +111,50 @@ for name, sym, unit in MARKET_TICKERS:
         markets.append(m)
     print(f"  {name}: {'OK' if m else 'FAIL'}")
 
-# ── 3. 번역 헬퍼 (MyMemory — 무료, API키 불필요) ─────────────
+# ── 3. Fear & Greed Index (CNN) ───────────────────────────────
+def get_fear_greed():
+    try:
+        resp = requests.get(
+            "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=10,
+        ).json()
+        fg = resp["fear_and_greed"]
+        score = round(fg["score"])
+        rating = fg["rating"]
+        rating_ko = {
+            "Extreme Fear": "극단적 공포",
+            "Fear": "공포",
+            "Neutral": "중립",
+            "Greed": "탐욕",
+            "Extreme Greed": "극단적 탐욕",
+        }.get(rating, rating)
+        if score <= 24:
+            emoji = "😱"
+        elif score <= 44:
+            emoji = "😨"
+        elif score <= 55:
+            emoji = "😐"
+        elif score <= 75:
+            emoji = "😊"
+        else:
+            emoji = "🤑"
+        return {"score": score, "rating": rating, "rating_ko": rating_ko, "emoji": emoji}
+    except Exception as e:
+        print(f"[경고] Fear & Greed 조회 실패: {e}")
+        return None
+
+fear_greed = get_fear_greed()
+print(f"Fear&Greed: {'OK' if fear_greed else 'FAIL'}")
+
+# ── 4. 번역 헬퍼 (MyMemory — 무료, API키 불필요) ─────────────
 def translate_ko(text: str) -> str:
     try:
         return MyMemoryTranslator(source="en-US", target="ko-KR").translate(text[:500])
     except Exception:
         return text
 
-# ── 4. 미국 증시 뉴스 TOP5 (Reuters · CNBC · MarketWatch) ────
+# ── 5. 미국 증시 뉴스 TOP5 (Reuters · CNBC · MarketWatch) ────
 MARKET_NEWS_SOURCES = [
     ("Bloomberg",   "https://feeds.bloomberg.com/markets/news.rss"),
     ("WSJ",         "https://feeds.a.dj.com/rss/RSSMarketsMain.xml"),
@@ -153,7 +189,7 @@ for item in raw_market_news:
         item["title_ko"] = translate_ko(item["title"])
         stock_news.append(item)
 
-# ── 5. 반도체 뉴스 TOP5 (Reuters · CNBC · Ars Technica 필터링) ──
+# ── 6. 반도체 뉴스 TOP5 (Reuters · CNBC · Ars Technica 필터링) ──
 SEMI_SOURCES = [
     ("Bloomberg Tech", "https://feeds.bloomberg.com/technology/news.rss"),
     ("CNBC Tech",      "https://www.cnbc.com/id/19854910/device/rss/rss.html"),
@@ -302,6 +338,12 @@ def build_message():
     else:
         lines.append("  데이터 조회 실패")
 
+    # Fear & Greed Index
+    if fear_greed:
+        fg = fear_greed
+        lines.append(f"\n😰 Fear & Greed Index")
+        lines.append(f"  {fg['emoji']} {fg['score']} / 100  —  {fg['rating_ko']} ({fg['rating']})")
+
     # 증시 뉴스
     lines.append("\n📰 미국 증시 뉴스 TOP5")
     if stock_news:
@@ -357,6 +399,12 @@ def build_markdown():
     for m in markets:
         arrow = "▲" if m["change"] >= 0 else "▼"
         lines.append(f"- **{m['name']}**: {m['close']:,.2f}  {arrow} {abs(m['change']):,.2f} ({m['change_pct']:+.2f}%)")
+
+    if fear_greed:
+        fg = fear_greed
+        lines += ["", "---", "", "## 😰 Fear & Greed Index", "",
+            f"- **{fg['score']} / 100**  {fg['emoji']}  {fg['rating_ko']} ({fg['rating']})",
+        ]
 
     lines += ["", "---", "", "## 📰 미국 증시 뉴스 TOP5", ""]
     for i, n in enumerate(stock_news, 1):

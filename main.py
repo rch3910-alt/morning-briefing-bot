@@ -28,6 +28,7 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHAT_ID        = os.getenv("TELEGRAM_CHAT_ID")
 SHEET_ID       = os.getenv("GOOGLE_SHEET_ID")
 CREDS_FILE     = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+CALENDAR_ID    = os.getenv("GOOGLE_CALENDAR_ID", "primary")
 
 KST           = timezone(timedelta(hours=9))
 NOW           = datetime.now(KST)
@@ -59,7 +60,7 @@ def get_today_events():
         day_start = NOW.replace(hour=0,  minute=0,  second=0,  microsecond=0).isoformat()
         day_end   = NOW.replace(hour=23, minute=59, second=59, microsecond=0).isoformat()
         result    = service.events().list(
-            calendarId="primary", timeMin=day_start, timeMax=day_end,
+            calendarId=CALENDAR_ID, timeMin=day_start, timeMax=day_end,
             singleEvents=True, orderBy="startTime",
         ).execute()
         return result.get("items", [])

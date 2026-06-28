@@ -357,7 +357,7 @@ def build_message():
     if fear_greed:
         fg = fear_greed
         src = f"  ({fg['source']})" if fg.get("source") != "CNN" else ""
-        lines.append(f"\n<b>🔥 공포탐욕 지수{src}</b>")
+        lines.append(f"\n<b>🔥 공포&amp;탐욕 지수{src}</b>")
         lines.append(f"  {fg['emoji']} {fg['score']} / 100  —  {fg['rating_ko']} ({fg['rating']})")
 
     # 증시 뉴스
@@ -379,11 +379,13 @@ def build_message():
         lines.append("  뉴스 없음")
 
     # 캘린더
+    lines.append("\n<b>📆 오늘 일정</b>")
     if events:
-        lines.append("\n<b>📆 오늘 일정</b>")
         for e in events[:5]:
             start = e["start"].get("dateTime", e["start"].get("date", ""))
             lines.append(f"  - {html.escape(e.get('summary', '(제목 없음)'))} [{start}]")
+    else:
+        lines.append("  일정 없음")
 
     # 날씨
     if weather:

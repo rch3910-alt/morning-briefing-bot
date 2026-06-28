@@ -1,0 +1,16 @@
+# 민감 정보 — 절대 GitHub에 올리지 않음
+input/.env
+input/*.json
+*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# 로그 및 출력물
+output/briefing.log
+output/collected_data.json

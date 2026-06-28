@@ -1,0 +1,40 @@
+name: 아침 브리핑 자동 발송
+
+on:
+  schedule:
+    # 한국 시간 06:30 = UTC 전날 21:30
+    - cron: '30 21 * * *'
+  workflow_dispatch:  # 수동 실행 허용
+
+jobs:
+  send-briefing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Python 설정
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 패키지 설치
+        run: pip install -r requirements.txt
+
+      - name: 구글 서비스 계정 키 파일 생성
+        run: |
+          echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}' > input/service-account.json
+
+      - name: .env 파일 생성
+        run: |
+          echo "TELEGRAM_BOT_TOKEN=${{ secrets.TELEGRAM_BOT_TOKEN }}" > input/.env
+          echo "TELEGRAM_CHAT_ID=${{ secrets.TELEGRAM_CHAT_ID }}" >> input/.env
+          echo "GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}" >> input/.env
+          echo "GOOGLE_APPLICATION_CREDENTIALS=input/service-account.json" >> input/.env
+
+      - name: output 폴더 생성
+        run: mkdir -p output
+
+      - name: 아침 브리핑 실행
+        run: python main.py

@@ -1,0 +1,8 @@
+python-dotenv
+requests
+feedparser
+yfinance
+gspread
+google-auth
+google-api-python-client
+deep-translator

@@ -73,9 +73,7 @@ print(f"캘린더 일정: {len(events)}개")
 # ── 2. 글로벌 시장 데이터 (나스닥·다우존스·금·은·비트코인) ────
 MARKET_TICKERS = [
     ("나스닥",    "^IXIC",   None),
-    ("다우존스",  "^DJI",    None),
     ("금",        "GC=F",    "$/oz"),
-    ("은",        "SI=F",    "$/oz"),
     ("비트코인",  "BTC-USD", "$"),
 ]
 
@@ -359,7 +357,7 @@ def build_message():
     if fear_greed:
         fg = fear_greed
         src = f"  ({fg['source']})" if fg.get("source") != "CNN" else ""
-        lines.append(f"\n<b>😰 Fear &amp; Greed Index{src}</b>")
+        lines.append(f"\n<b>🔥 공포탐욕 지수{src}</b>")
         lines.append(f"  {fg['emoji']} {fg['score']} / 100  —  {fg['rating_ko']} ({fg['rating']})")
 
     # 증시 뉴스
@@ -372,7 +370,7 @@ def build_message():
         lines.append("  뉴스 없음")
 
     # 반도체 뉴스
-    lines.append("\n<b>💾 반도체 뉴스 TOP5</b>")
+    lines.append("\n<b>⚙️ 반도체 뉴스 TOP5</b>")
     if semi_news:
         for i, n in enumerate(semi_news, 1):
             lines.append(f"  {i}. {html.escape(n['title_ko'])}")

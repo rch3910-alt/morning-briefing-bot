@@ -22,6 +22,9 @@ jobs:
       - name: 패키지 설치
         run: pip install -r requirements.txt
 
+      - name: input/output 폴더 생성
+        run: mkdir -p input output
+
       - name: 구글 서비스 계정 키 파일 생성
         run: |
           echo '${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_JSON }}' > input/service-account.json
@@ -32,9 +35,6 @@ jobs:
           echo "TELEGRAM_CHAT_ID=${{ secrets.CHAT_ID }}" >> input/.env
           echo "GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}" >> input/.env
           echo "GOOGLE_APPLICATION_CREDENTIALS=input/service-account.json" >> input/.env
-
-      - name: output 폴더 생성
-        run: mkdir -p output
 
       - name: 아침 브리핑 실행
         run: python main.py

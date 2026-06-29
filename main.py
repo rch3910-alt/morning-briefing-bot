@@ -15,7 +15,7 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 from datetime import datetime, timezone, timedelta
 from dotenv import load_dotenv
-from deep_translator import MyMemoryTranslator
+from deep_translator import GoogleTranslator, MyMemoryTranslator
 
 sys.stdout.reconfigure(encoding="utf-8")
 
@@ -165,8 +165,16 @@ print(f"Fear&Greed: {'OK' if fear_greed else 'FAIL'}")
 
 # ── 4. 번역 헬퍼 (MyMemory — 무료, API키 불필요) ─────────────
 def translate_ko(text: str) -> str:
+    # GoogleTranslator (비공식, 키 불필요) 우선 시도
     try:
-        return MyMemoryTranslator(source="auto", target="ko-KR").translate(text[:500])
+        result = GoogleTranslator(source="auto", target="ko").translate(text[:500])
+        if result:
+            return result
+    except Exception:
+        pass
+    # MyMemory 폴백 (소스 언어 명시)
+    try:
+        return MyMemoryTranslator(source="en-US", target="ko-KR").translate(text[:500])
     except Exception:
         return text
 
@@ -240,10 +248,11 @@ for item in raw_semi_news:
 # ── 6. 날씨 + 강수 시간대 + 기상 특보 (Open-Meteo) ─────────
 def get_weather():
     try:
-        # 일별·시간별·현재 통합 요청
+        # 일별·시간별·현재 통합 요청 (best_match: 위치별 최적 모델 자동 선택)
         wr = requests.get(
             "https://api.open-meteo.com/v1/forecast"
             "?latitude=37.5641&longitude=126.9979"
+            "&models=best_match"
             "&daily=temperature_2m_max,temperature_2m_min,"
             "precipitation_probability_max,precipitation_hours,"
             "precipitation_sum,windspeed_10m_max,weathercode"
@@ -257,24 +266,40 @@ def get_weather():
         hourly  = wr.get("hourly", {})
         current = wr["current"]
 
-        # 강수 예상 시간대 (확률 50% 초과 구간)
-        rain_windows = []
         h_probs = hourly.get("precipitation_probability", [])
         h_times = hourly.get("time", [])
+
+        # 현재 시각 이후 시간대만 고려 (자정 기준 전체가 아닌 남은 오늘)
+        kst_now_hour = datetime.now(KST).hour
+
+        # 강수 예상 시간대 (확률 50% 초과 구간, 현재 시각 이후)
+        rain_windows = []
         in_rain = False
         start_h = None
         for t, p in zip(h_times, h_probs):
+            try:
+                h = int(t[11:13])
+            except (ValueError, IndexError):
+                continue
+            if h < kst_now_hour:
+                continue
             if p is not None and p > 50:
                 if not in_rain:
                     in_rain = True
-                    start_h = t[11:16]  # "HH:MM"
+                    start_h = t[11:16]
             else:
                 if in_rain:
-                    end_h = t[11:16]
-                    rain_windows.append(f"{start_h}~{end_h}")
+                    rain_windows.append(f"{start_h}~{t[11:16]}")
                     in_rain = False
         if in_rain and start_h:
             rain_windows.append(f"{start_h}~24:00")
+
+        # 강수 확률: 현재 시각~오늘 자정 구간의 최대값 (일일 최대값 대신)
+        remaining_probs = [
+            p for t, p in zip(h_times, h_probs)
+            if p is not None and len(t) >= 13 and int(t[11:13]) >= kst_now_hour
+        ]
+        precip_prob_display = max(remaining_probs) if remaining_probs else daily["precipitation_probability_max"][0]
 
         # 기상 특보 판별
         alerts = []
@@ -295,12 +320,33 @@ def get_weather():
         if wcode >= 95:
             alerts.append("⛈️ 뇌우 예보")
 
-        # 미세먼지
-        aqr = requests.get(
-            "https://air-quality-api.open-meteo.com/v1/air-quality"
-            "?latitude=37.5641&longitude=126.9979&current=pm10,pm2_5&timezone=Asia%2FSeoul",
-            timeout=10,
-        ).json()
+        # 미세먼지 — AQICN (서울 실측 관측소 데이터)
+        AQICN_TOKEN = os.getenv("AQICN_TOKEN", "demo")
+        pm10, pm25 = None, None
+        try:
+            aqicn = requests.get(
+                f"https://api.waqi.info/feed/seoul/?token={AQICN_TOKEN}",
+                timeout=10,
+            ).json()
+            if aqicn.get("status") == "ok":
+                iaqi = aqicn["data"].get("iaqi", {})
+                pm10 = iaqi.get("pm10", {}).get("v")
+                pm25 = iaqi.get("pm25", {}).get("v")
+        except Exception as e:
+            print(f"[경고] AQICN 조회 실패: {e}")
+
+        # AQICN 실패 시 Open-Meteo CAMS 폴백
+        if pm10 is None and pm25 is None:
+            try:
+                aqr = requests.get(
+                    "https://air-quality-api.open-meteo.com/v1/air-quality"
+                    "?latitude=37.5641&longitude=126.9979&current=pm10,pm2_5&timezone=Asia%2FSeoul",
+                    timeout=10,
+                ).json()
+                pm10 = aqr["current"].get("pm10")
+                pm25 = aqr["current"].get("pm2_5")
+            except Exception:
+                pass
 
         def grade(v, t):
             if v is None:
@@ -310,14 +356,11 @@ def get_weather():
                     return label
             return "매우나쁨"
 
-        pm10 = aqr["current"].get("pm10")
-        pm25 = aqr["current"].get("pm2_5")
-
         return {
             "cur_temp":    current["temperature_2m"],
             "max_temp":    daily["temperature_2m_max"][0],
             "min_temp":    daily["temperature_2m_min"][0],
-            "precip_prob": daily["precipitation_probability_max"][0],
+            "precip_prob": precip_prob_display,
             "precip_hours": daily["precipitation_hours"][0],
             "precip_sum":  precip_sum,
             "wind_max":    wind_max,

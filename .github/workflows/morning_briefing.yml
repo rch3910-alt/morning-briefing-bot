@@ -41,6 +41,8 @@ jobs:
           echo "GOOGLE_SHEET_ID=${{ secrets.GOOGLE_SHEET_ID }}" >> input/.env
           echo "GOOGLE_APPLICATION_CREDENTIALS=input/service-account.json" >> input/.env
           echo "GOOGLE_CALENDAR_ID=${{ secrets.GOOGLE_CALENDAR_ID }}" >> input/.env
+          echo "KMA_API_KEY=${{ secrets.KMA_API_KEY }}" >> input/.env
+          echo "AIRKOREA_API_KEY=${{ secrets.AIRKOREA_API_KEY }}" >> input/.env
 
       - name: 아침 브리핑 실행
         run: |
